@@ -1,7 +1,7 @@
 <a href="https://www.patreon.com/stefansarya"><img src="http://anisics.stream/assets/img/support-badge.png" height="20"></a>
 
-[![Writed by](https://img.shields.io/badge/Writed%20by-ScarletsFiction-%231e87ff.svg)](LICENSE)
-[![Software License](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE)
+[![Written by](https://img.shields.io/badge/Written%20by-ScarletsFiction-%231e87ff.svg)](LICENSE)
+[![Software License](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE)
 
 # SFIntercom
 SFIntercom is a client-side library that allow cross-tab communication with same domain.
