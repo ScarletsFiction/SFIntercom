@@ -31,7 +31,7 @@ var SFIntercom = function(){
 
 	// Fallback to Shared Worker
 	else if(window.SharedWorker){
-		var worker = new SharedWorker('SFIntercom_Worker.js');
+		var worker = new SharedWorker('./SFIntercom_Worker.js');
 		var intercomID = (new Date()).getTime();
 		$(window).one('beforeunload', function(){
 			worker.port.postMessage({intercomID:intercomID, command:'close'});
