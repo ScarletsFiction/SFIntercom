@@ -13,12 +13,12 @@ var SFIntercom = function(){
 
 	// Try use Broadcast Channel API
 	if(window.BroadcastChannel){
-		var bc = new BroadcastChannel(document.origin);
+		var bc = new BroadcastChannel(window.origin);
 		$(window).one('beforeunload', function(){
 			bc.close();
 		});
 		bc.onmessage = function(ev){
-			if(ev.origin != document.origin) return;
+			if(ev.origin != window.origin) return;
 		  	if(callbacks[ev.data.key])
 		  		for (var i = 0; i < callbacks[ev.data.key].length; i++) {
 		  			if(callbacks[ev.data.key][i](ev.data.values)) return;
