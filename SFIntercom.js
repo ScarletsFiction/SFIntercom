@@ -1,5 +1,5 @@
 /*
-	ScarletsFiction Intercom Library v1.1
+	ScarletsFiction Intercom Library v1.2
 	Client-side cross-tab communication in a single web browser
 	https://github.com/ScarletsFiction/SFIntercom
 	
@@ -17,13 +17,15 @@ var SFIntercom = function(){
 		$(window).one('beforeunload', function(){
 			bc.close();
 		});
+
 		bc.onmessage = function(ev){
-			if(ev.origin != window.origin) return;
+			if(ev.origin !== window.origin) return;
 		  	if(callbacks[ev.data.key])
 		  		for (var i = 0; i < callbacks[ev.data.key].length; i++) {
 		  			if(callbacks[ev.data.key][i](ev.data.values)) return;
 		  		}
 		}
+
 		scope.emit = function(eventName, eventData){
 			bc.postMessage({key:eventName, values:eventData});
 		}
@@ -33,15 +35,18 @@ var SFIntercom = function(){
 	else if(window.SharedWorker){
 		var worker = new SharedWorker('./SFIntercom_Worker.js');
 		var intercomID = (new Date()).getTime();
+
 		$(window).one('beforeunload', function(){
 			worker.port.postMessage({intercomID:intercomID, command:'close'});
 		});
+
   		worker.port.onmessage = function(ev){
 		  	if(callbacks[ev.data.eventData.key])
 		  		for (var i = 0; i < callbacks[ev.data.eventData.key].length; i++) {
 		  			if(callbacks[ev.data.eventData.key][i](ev.data.eventData.values)) return;
 		  		}
   		}
+
 		scope.emit = function(eventName, eventData){
 			worker.port.postMessage({intercomID:intercomID, command:'emit', eventData:{key:eventName, values:eventData}});
 		}
@@ -97,7 +102,7 @@ var SFIntercom = function(){
 	// Add Event listener from other tabs
 	scope.on = function(eventName, func){
 		if(!callbacks[eventName]) callbacks[eventName] = [];
-		if(callbacks[eventName].indexOf(func)==-1)
+		if(callbacks[eventName].indexOf(func) === -1)
 			callbacks[eventName].push(func);
 	}
 
@@ -105,7 +110,7 @@ var SFIntercom = function(){
 	scope.off = function(eventName, func){
 		if(!callbacks[eventName]) return;
 		var index = callbacks[eventName].indexOf(func);
-		if(index!=-1)
+		if(index !== -1)
 			callbacks[eventName].splice(index, 1);
 	}
 };
