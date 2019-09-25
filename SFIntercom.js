@@ -1,5 +1,5 @@
 /*
-	ScarletsFiction Intercom Library v1.2
+	ScarletsFiction Intercom
 	Client-side cross-tab communication in a single web browser
 	https://github.com/ScarletsFiction/SFIntercom
 	
@@ -14,9 +14,9 @@ var SFIntercom = function(){
 	// Try use Broadcast Channel API
 	if(window.BroadcastChannel){
 		var bc = new BroadcastChannel(window.origin);
-		$(window).one('beforeunload', function(){
+		window.addEventListener('beforeunload', function(){
 			bc.close();
-		});
+		}, {once:true});
 
 		bc.onmessage = function(ev){
 			if(ev.origin !== window.origin) return;
@@ -36,9 +36,9 @@ var SFIntercom = function(){
 		var worker = new SharedWorker('./SFIntercom_Worker.js');
 		var intercomID = (new Date()).getTime();
 
-		$(window).one('beforeunload', function(){
+		window.addEventListener('beforeunload', function(){
 			worker.port.postMessage({intercomID:intercomID, command:'close'});
-		});
+		}, {once:true});
 
   		worker.port.onmessage = function(ev){
 		  	if(callbacks[ev.data.eventData.key])
@@ -58,16 +58,16 @@ var SFIntercom = function(){
 
 		// Register cleanup event when user closed the tab
 		var cleanup = {};
-		$(window).one('beforeunload', function(){
+		window.addEventListener('beforeunload', function(){
 			var keys = Object.keys(cleanup);
 			for (var i = 0; i < keys.length; i++) {
 				cleanup[keys[i]]();
 				delete cleanup[keys[i]];
 			}
-		});
+		}, {once:true});
 
 		// Register message event when something changes
-		$(window).on('storage', function(ev){
+		window.addEventListener('storage', function(ev){
 		  	if(callbacks[ev.originalEvent.key])
 		  		for (var i = 0; i < callbacks[ev.originalEvent.key].length; i++) {
 		  			if(callbacks[ev.originalEvent.key][i](ev.originalEvent.newValue)) return;
