@@ -7,8 +7,8 @@
 */
 
 var SFIntercom = function(){
-	var scope = this;
-	scope.available = true;
+	var self = this;
+	self.available = true;
 	var callbacks = {};
 
 	// Try use Broadcast Channel API
@@ -20,13 +20,18 @@ var SFIntercom = function(){
 
 		bc.onmessage = function(ev){
 			if(ev.origin !== window.origin) return;
-		  	if(callbacks[ev.data.key])
-		  		for (var i = 0; i < callbacks[ev.data.key].length; i++) {
-		  			if(callbacks[ev.data.key][i](ev.data.values)) return;
-		  		}
+	  		onMessage(ev.data.key, ev.data.values);
 		}
 
-		scope.emit = function(eventName, eventData){
+		self.emit = function(eventName, eventData, callback){
+			if(eventData !== null && eventData !== void 0 && eventData.constructor === Function){
+				callback = eventData;
+				eventData = {};
+			}
+
+			if(callback !== void 0)
+				eventData._clbkID = makeReCallback(callback);
+
 			bc.postMessage({key:eventName, values:eventData});
 		}
 	}
@@ -41,13 +46,18 @@ var SFIntercom = function(){
 		}, {once:true});
 
   		worker.port.onmessage = function(ev){
-		  	if(callbacks[ev.data.eventData.key])
-		  		for (var i = 0; i < callbacks[ev.data.eventData.key].length; i++) {
-		  			if(callbacks[ev.data.eventData.key][i](ev.data.eventData.values)) return;
-		  		}
+	  		onMessage(ev.data.eventData.key, ev.data.eventData.values);
   		}
 
-		scope.emit = function(eventName, eventData){
+		self.emit = function(eventName, eventData, callback){
+			if(eventData !== null && eventData !== void 0 && eventData.constructor === Function){
+				callback = eventData;
+				eventData = {};
+			}
+
+			if(callback !== void 0)
+				eventData._clbkID = makeReCallback(callback);
+
 			worker.port.postMessage({intercomID:intercomID, command:'emit', eventData:{key:eventName, values:eventData}});
 		}
 	}
@@ -68,14 +78,19 @@ var SFIntercom = function(){
 
 		// Register message event when something changes
 		window.addEventListener('storage', function(ev){
-		  	if(callbacks[ev.originalEvent.key])
-		  		for (var i = 0; i < callbacks[ev.originalEvent.key].length; i++) {
-		  			if(callbacks[ev.originalEvent.key][i](ev.originalEvent.newValue)) return;
-		  		}
+	  		onMessage(ev.originalEvent.key, ev.originalEvent.newValue);
 		});
 
 		// Broadcast event to other tabs
-		scope.emit = function(eventName, eventData){
+		self.emit = function(eventName, eventData, callback){
+			if(eventData !== null && eventData !== void 0 && eventData.constructor === Function){
+				callback = eventData;
+				eventData = {};
+			}
+
+			if(callback !== void 0)
+				eventData._clbkID = makeReCallback(callback);
+
 			var localStorageKey = prefix + eventName;
 
 			// Trigger `storage` event on all tab except this tab
@@ -95,19 +110,65 @@ var SFIntercom = function(){
 		}
 	}
 	else{
-		scope.available = false;
+		self.available = false;
 		return;
 	}
 
+	var reCallback = {};
+	function makeReCallback(callback){
+		var rand = Math.round(Math.random()*1e9);
+		var sT = setTimeout(function(){
+			delete reCallback[rand];
+		}, 1e4);
+
+		reCallback[rand] = function(val){
+			callback(val.val, function(val2, callback){
+				self.emit('_reCallback.', {
+					val:val2,
+					_callID:val._clbkID,
+					_clbkID:makeReCallback(callback)
+				});
+			});
+
+			delete reCallback[rand];
+			clearTimeout(sT);
+		};
+
+		return rand;
+	}
+
+	function onMessage(key, val){
+		var recall = function(val2, callback){
+			self.emit('_reCallback.', {
+				val:val2,
+				_callID:val._clbkID,
+				_clbkID:makeReCallback(callback)
+			});
+		};
+
+		// From another callback
+		if(key === '_reCallback.'){
+			reCallback[val._callID](val, recall);
+			return;
+		}
+
+		if(callbacks[key] === void 0)
+			return;
+
+		for (var i = 0; i < callbacks[key].length; i++) {
+			if(callbacks[key][i](val, recall)) return;
+		}
+	}
+
 	// Add Event listener from other tabs
-	scope.on = function(eventName, func){
+	self.on = function(eventName, func){
 		if(!callbacks[eventName]) callbacks[eventName] = [];
 		if(callbacks[eventName].indexOf(func) === -1)
 			callbacks[eventName].push(func);
 	}
 
 	// Remove event listener
-	scope.off = function(eventName, func){
+	self.off = function(eventName, func){
 		if(!callbacks[eventName]) return;
 		var index = callbacks[eventName].indexOf(func);
 		if(index !== -1)
